@@ -1,5 +1,5 @@
 const express = require('express')
-const sqlite3 = require('sqlite3').verbose()
+const { createClient } = require('@libsql/client')
 const cors = require('cors')
 const app = express()
 
@@ -7,26 +7,31 @@ app.use(cors())
 app.use(express.json())
 app.use(express.static('.'))
 
-const db = new sqlite3.Database('tareas.db')
+const db = createClient({ url: 'file:tareas.db' })
 
-db.run(`CREATE TABLE IF NOT EXISTS tareas (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  texto TEXT NOT NULL
-)`)
+async function init() {
+  await db.execute(`CREATE TABLE IF NOT EXISTS tareas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    texto TEXT NOT NULL
+  )`)
+}
 
-app.get('/tareas', (req, res) => {
-  db.all('SELECT * FROM tareas', (err, rows) => {
-    res.json(rows)
-  })
+app.get('/tareas', async (req, res) => {
+  const result = await db.execute('SELECT * FROM tareas')
+  res.json(result.rows)
 })
 
-app.post('/tareas', (req, res) => {
+app.post('/tareas', async (req, res) => {
   const { texto } = req.body
-  db.run('INSERT INTO tareas (texto) VALUES (?)', [texto], function() {
-    res.json({ id: this.lastID, texto })
+  const result = await db.execute({
+    sql: 'INSERT INTO tareas (texto) VALUES (?)',
+    args: [texto]
   })
+  res.json({ id: Number(result.lastInsertRowid), texto })
 })
 
-app.listen(3000, () => {
-  console.log('Servidor corriendo en http://localhost:3000')
+init().then(() => {
+  app.listen(3000, () => {
+    console.log('Servidor corriendo en http://localhost:3000')
+  })
 })
