@@ -1,2 +1,40 @@
-node_modules
-tareas.db
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mis Tareas</title>
+</head>
+<body>
+  <h1>Lista de Tareas</h1>
+
+  <input id="input" type="text" placeholder="Nueva tarea">
+  <button onclick="agregarTarea()">Agregar</button>
+
+  <ul id="lista"></ul>
+
+  <script>
+    async function cargarTareas() {
+      const res = await fetch('/tareas')
+      const tareas = await res.json()
+      const lista = document.getElementById('lista')
+      lista.innerHTML = ''
+      tareas.forEach(t => {
+        lista.innerHTML += `<li>${t.texto}</li>`
+      })
+    }
+
+    async function agregarTarea() {
+      const texto = document.getElementById('input').value
+      await fetch('/tareas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto })
+      })
+      document.getElementById('input').value = ''
+      cargarTareas()
+    }
+
+    cargarTareas()
+  </script>
+</body>
+</html>
